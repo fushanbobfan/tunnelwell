@@ -17,16 +17,16 @@ export const PRESETS = {
     note: 'Even with enough energy to climb the step, part of the wave reflects off the sudden change. The transmitted part slows down and its wavelength stretches.',
   },
   double: {
-    label: 'Double barrier', scatter: true, height: 3, width: 0.6, gap: 4, energy: 0.6, sigma: 8, x0: -30,
-    note: 'Two thin walls make a cavity. At the energies of its quasi-bound states the pair turns transparent; in between it is nearly a mirror. Watch the probability ring inside before it leaks out.',
+    label: 'Double barrier', scatter: true, height: 3, width: 0.6, gap: 4, energy: 0.83, sigma: 9, x0: -30,
+    note: 'Two thin walls make a cavity. At the energies of its quasi-bound states the pair turns transparent; in between it is nearly a mirror. This packet is tuned to the second resonance: watch probability pile up inside and leak out both ways. Move the energy to 0.6 and almost nothing gets through.',
   },
   well: {
     label: 'Square well', scatter: true, height: 2, width: 6, gap: 4, energy: 1, sigma: 4, x0: -30,
     note: 'An attractive well also reflects. When a whole number of half wavelengths fits across it the reflections cancel and the well becomes invisible.',
   },
   lattice: {
-    label: 'Six-barrier lattice', scatter: true, height: 2, width: 0.8, gap: 2.2, energy: 1.2, sigma: 8, x0: -35,
-    note: 'A short crystal. Energies inside a band pass; energies in a gap between bands are reflected even when they sit above the barrier tops.',
+    label: 'Six-barrier lattice', scatter: true, height: 2, width: 0.8, gap: 2.2, energy: 1.7, sigma: 8, x0: -35,
+    note: 'A short crystal. Energies inside a band pass; energies in a gap between bands are reflected. This packet sits in a band; lower its energy to 1.0 and it lands in a gap.',
   },
   harmonic: {
     label: 'Harmonic well', scatter: false, height: 2, width: 1, gap: 4, energy: 0, sigma: 2.74, x0: -30,
