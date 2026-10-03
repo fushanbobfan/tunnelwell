@@ -7,10 +7,15 @@ import {
 } from './potentials.js';
 import { RANGES, fromPreset, clampSettings, encodeHash, decodeHash } from './params.js';
 import { draw, energyRange, makeFrame } from './render.js';
+import {
+  spectrumMax, transmissionCurve, energyShares, findPeaks, insertPeaks, spectrumFrame, drawSpectrum,
+} from './spectrum.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('plot');
 const ctx = canvas.getContext('2d');
+const specCanvas = $('spectrum');
+const specCtx = specCanvas.getContext('2d');
 const grid = createGrid();
 
 const LANDSCAPE = ['height', 'width', 'gap'];
@@ -38,6 +43,10 @@ const state = {
   stroke: null,
   showReal: false,
   dirty: true,
+  landscapeVersion: 0,
+  spectrum: null,
+  specSize: { width: 600, height: 190 },
+  runs: [],
 };
 
 const pct = (p) => `${(100 * Math.max(0, p)).toFixed(1)} %`;
@@ -54,6 +63,8 @@ function buildLandscape() {
   const mid = indexOf(grid, 0);
   state.zone = zone ?? { from: mid, to: mid };
   state.solver?.setPotential(state.V);
+  state.landscapeVersion++;
+  state.runs = [];
 }
 
 function computeTheory() {
@@ -68,6 +79,46 @@ function computeTheory() {
     packet: packetTransmission(pot, k0, s.sigma),
     plane: s.energy > 0 ? transmission(pot, pot.left + s.energy) : 0,
   };
+}
+
+// The curve and its peaks depend only on the landscape; the shares follow the packet.
+function computeSpectrum() {
+  const s = state.settings;
+  const on = scattering();
+  $('spectrum-panel').hidden = !on;
+  $('spectrum-off').hidden = on;
+  if (!on) {
+    state.spectrum = null;
+    return;
+  }
+  const pot = regionsFromSamples(state.V, grid.dx, state.zone.from, state.zone.to);
+  const eMax = spectrumMax(pot, s.energy);
+  const key = `${state.landscapeVersion}:${eMax}`;
+  let { spectrum } = state;
+  if (!spectrum || spectrum.key !== key) {
+    const sampled = transmissionCurve(pot, eMax);
+    const peaks = findPeaks(pot, sampled, { limit: 6 });
+    spectrum = { key, eMax, curve: insertPeaks(sampled, findPeaks(pot, sampled, { limit: 200 })), peaks };
+    const text = spectrum.peaks.length
+      ? `Full or near-full transmission at kinetic energy ${spectrum.peaks.map((p) => p.energy.toFixed(2)).join(', ')}.`
+      : `No transmission peak above 50 % below kinetic energy ${eMax}.`;
+    $('peaks').textContent = text;
+    specCanvas.setAttribute('aria-label', `Exact transmission against kinetic energy from 0 to ${eMax}. ${text}`);
+  }
+  spectrum.shares = energyShares(Math.sqrt(2 * s.energy), s.sigma, eMax);
+  spectrum.frame = spectrumFrame(state.specSize.width, state.specSize.height, eMax);
+  state.spectrum = spectrum;
+}
+
+function renderSpectrum() {
+  if (!state.spectrum) return;
+  drawSpectrum(specCtx, {
+    frame: state.spectrum.frame,
+    curve: state.spectrum.curve,
+    shares: state.spectrum.shares,
+    energy: state.settings.energy,
+    runs: state.runs,
+  });
 }
 
 function fitAxes() {
@@ -88,6 +139,7 @@ function resetPacket() {
   state.finished = false;
   fitAxes();
   computeTheory();
+  computeSpectrum();
   describe();
   state.dirty = true;
 }
@@ -121,6 +173,7 @@ function updateReadout() {
 }
 
 function render() {
+  renderSpectrum();
   draw(ctx, {
     grid,
     V: state.V,
@@ -152,6 +205,10 @@ function finish() {
   state.finished = true;
   const parts = splitProbability(grid, state.psi, state.zone, state.solver.absorbed);
   const exact = state.theory ? ` The exact answer for this packet is ${pct(state.theory.packet)}.` : '';
+  if (state.theory) {
+    state.runs = [...state.runs.slice(-39), { energy: state.settings.energy, measured: parts.transmitted, exact: state.theory.packet }];
+    state.dirty = true;
+  }
   setStatus(`Done: ${pct(parts.transmitted)} got through and ${pct(parts.reflected)} came back.${exact}`);
 }
 
@@ -193,8 +250,10 @@ function format(key, v) {
 }
 
 function applySettings(next, { landscape = true } = {}) {
+  const before = state.settings;
   state.settings = clampSettings(next);
   if (landscape) buildLandscape();
+  else if (state.settings.sigma !== before.sigma) state.runs = [];
   resetPacket();
   syncControls();
   saveHash();
@@ -324,6 +383,7 @@ function initPainting() {
     if (!state.stroke) return;
     state.stroke = null;
     computeTheory();
+    computeSpectrum();
     saveHash();
     state.dirty = true;
   };
@@ -341,15 +401,33 @@ function resize() {
   canvas.height = Math.round(state.size.height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   state.frame = makeFrame(state.size.width, state.size.height, grid.view, state.range);
+  const srect = specCanvas.getBoundingClientRect();
+  state.specSize = { width: Math.max(200, srect.width), height: Math.max(120, srect.height) };
+  specCanvas.width = Math.round(state.specSize.width * dpr);
+  specCanvas.height = Math.round(state.specSize.height * dpr);
+  specCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (state.spectrum) state.spectrum.frame = spectrumFrame(state.specSize.width, state.specSize.height, state.spectrum.eMax);
   state.dirty = true;
 }
+
+// Click the spectrum to fire a packet at that kinetic energy.
+specCanvas.addEventListener('click', (e) => {
+  if (!state.spectrum) return;
+  const rect = specCanvas.getBoundingClientRect();
+  const energyAt = Math.round(state.spectrum.frame.eAt(e.clientX - rect.left) * 100) / 100;
+  setPlaying(false);
+  applySettings({ ...state.settings, energy: energyAt }, { landscape: false });
+  setPlaying(true);
+});
 
 initControls();
 initPainting();
 buildLandscape();
 resetPacket();
 syncControls();
-new ResizeObserver(resize).observe(canvas);
+const observer = new ResizeObserver(resize);
+observer.observe(canvas);
+observer.observe(specCanvas);
 resize();
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduced) setStatus('Ready: press Play');
