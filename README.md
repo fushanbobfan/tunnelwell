@@ -50,6 +50,14 @@ default width (the coherent-state width) it swings without changing shape;
 any other width makes it breathe. *Double well* shows a packet tunnelling
 from one well to the other through a hump it cannot climb.
 
+**Read the spectrum.** Under the table, the transmission spectrum plots
+the exact plane-wave T against kinetic energy, shades how the packet's
+probability is spread over those energies, and lists the energies where
+transmission peaks. Click anywhere on it to fire a packet at that energy.
+Every finished run adds a dot for the measured share inside a ring for
+the exact one, so a few clicks on *Double barrier* trace its resonances
+by experiment. The dots are cleared when the landscape or σ changes.
+
 **Paint a landscape.** Press *Paint landscape* (or <kbd>P</kbd>) and drag
 across the plot. The scene switches to *Painted*, starting from whatever
 landscape was showing, and the exact columns follow what you draw. Copy
@@ -90,6 +98,10 @@ speed k.
   any piecewise-constant landscape, painted ones included. The packet row
   averages T over the packet's Gaussian momentum distribution, which has
   standard deviation 1/(2σ).
+- **Spectrum.** `src/spectrum.js` samples T over the kinetic-energy axis,
+  refines each peak by ternary search so narrow resonances are drawn to
+  full height, and bins the packet's energy distribution from the normal
+  CDF of its momentum.
 - **Measurement.** The landscape's interaction zone is where V differs
   from its two flat ends. Probability left of it plus the left absorber is
   reflected, right of it plus the right absorber is transmitted, and the
