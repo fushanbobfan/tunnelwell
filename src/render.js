@@ -102,6 +102,7 @@ const COLORS = {
   wallLine: '#9fb2d6',
   energy: '#f2d479',
   real: '#e8edf7',
+  level: 'rgba(159, 211, 255, 0.35)',
 };
 
 // scene: { grid, V, psi, frame, baseline, densityScale, showReal, zone }
@@ -175,6 +176,26 @@ export function draw(ctx, scene) {
   }
   ctx.stroke();
 
+  // Bound-state levels, drawn only where they are classically allowed.
+  if (scene.levels) {
+    ctx.strokeStyle = COLORS.level;
+    ctx.lineWidth = 1;
+    for (const e of scene.levels) {
+      if (e > frame.range.max) break;
+      const y = Math.round(py(e)) + 0.5;
+      ctx.beginPath();
+      let open = false;
+      for (let c = 0; c < columns; c++) {
+        if (vCol[c] < e) {
+          if (!open) ctx.moveTo(MARGIN.left + c, y);
+          else ctx.lineTo(MARGIN.left + c + 1, y);
+          open = true;
+        } else open = false;
+      }
+      ctx.stroke();
+    }
+  }
+
   // The packet: |psi|^2 rising from its mean energy, coloured by phase.
   const cols = sampleColumns(grid, psi, columns, frame.view);
   const baseY = py(baseline);
@@ -221,4 +242,62 @@ export function draw(ctx, scene) {
   ctx.fillText('energy', 4, 0);
   ctx.textAlign = 'right';
   ctx.fillText('position x', width - MARGIN.right, 0);
+}
+
+// Stick chart of the packet's share in each bound state against its energy.
+export function levelFrame(width, height, eMin, eMax) {
+  const m = { left: 46, right: 12, top: 10, bottom: 26 };
+  const plotW = width - m.left - m.right;
+  const plotH = height - m.top - m.bottom;
+  return {
+    width, height, plotW, plotH, eMin, eMax, m,
+    px: (e) => m.left + ((e - eMin) / (eMax - eMin)) * plotW,
+    py: (v) => m.top + (1 - v) * plotH,
+  };
+}
+
+// scene: { frame, states: [{ energy }], weights: number[] }
+export function drawLevelChart(ctx, { frame, states, weights }) {
+  const { width, height, plotW, plotH, px, py, m } = frame;
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, width, height);
+  const top = Math.max(1e-9, ...weights);
+  const yMax = top > 0.5 ? 1 : top > 0.2 ? 0.5 : Math.max(0.05, Math.ceil(top * 20) / 20);
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.strokeStyle = COLORS.grid;
+  ctx.fillStyle = COLORS.axis;
+  ctx.lineWidth = 1;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (const f of [0, 0.5, 1]) {
+    const y = Math.round(py(f)) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(m.left, y);
+    ctx.lineTo(m.left + plotW, y);
+    ctx.stroke();
+    ctx.fillText(`${Number((f * yMax * 100).toFixed(1))}%`, m.left - 6, y);
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (const e of ticks(frame.eMin, frame.eMax, Math.max(3, Math.min(10, Math.floor(plotW / 70))))) {
+    const x = Math.round(px(e)) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, m.top);
+    ctx.lineTo(x, m.top + plotH);
+    ctx.stroke();
+    ctx.fillText(String(e), x, m.top + plotH + 6);
+  }
+  const barW = Math.max(1.5, Math.min(8, (plotW / Math.max(1, states.length)) * 0.6));
+  for (let n = 0; n < states.length; n++) {
+    const x = px(states[n].energy);
+    ctx.fillStyle = COLORS.level;
+    ctx.fillRect(x - 0.5, m.top, 1, plotH);
+    const h = (Math.min(weights[n], yMax) / yMax) * plotH;
+    ctx.fillStyle = '#f2a65a';
+    ctx.fillRect(x - barW / 2, m.top + plotH - h, barW, h);
+  }
+  ctx.fillStyle = COLORS.axis;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  ctx.fillText('energy', width - m.right, 0);
 }
