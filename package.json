@@ -1,0 +1,25 @@
+{
+  "name": "tunnelwell",
+  "version": "0.1.0",
+  "description": "A quantum wave packet in the browser: fire it at barriers, steps, wells and lattices, watch it split, and compare the measured transmission with the exact answer.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "serve": "node scripts/serve.js"
+  },
+  "keywords": [
+    "quantum-mechanics",
+    "schrodinger-equation",
+    "quantum-tunneling",
+    "wave-packet",
+    "physics-simulation",
+    "canvas"
+  ],
+  "license": "MIT",
+  "author": "Jiayi Fan",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fushanbobfan/tunnelwell.git"
+  },
+  "private": false
+}
