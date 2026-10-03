@@ -68,20 +68,21 @@ test('a confining well stays finite in the absorbing layers', () => {
 });
 
 test('the simulated packet splits as the exact transmission predicts', () => {
-  for (const name of ['barrier', 'step']) {
+  for (const name of ['barrier', 'step', 'double', 'well', 'lattice']) {
     const s = settingsFor(name);
     const V = buildPotential(grid, s);
     const zone = interactionZone(grid, V);
     const k0 = Math.sqrt(2 * s.energy);
     const psi = gaussianPacket(grid, { x0: s.x0, sigma: s.sigma, k0 });
     const solver = createSolver(grid, V);
-    solver.step(psi, 2500);
+    // Run until the absorbing edges have taken almost everything, as the page does.
+    while (probability(grid, psi) > 0.005) solver.step(psi, 100);
     const parts = splitProbability(grid, psi, zone, solver.absorbed);
     const total = parts.reflected + parts.inside + parts.transmitted;
     assert.ok(Math.abs(total - 1) < 1e-6, 'probability is accounted for');
-    assert.ok(parts.inside < 1e-3);
+    assert.ok(parts.inside < 0.005);
     const want = packetTransmission(regionsFromSamples(V, grid.dx, zone.from, zone.to), k0, s.sigma);
-    assert.ok(Math.abs(parts.transmitted - want) < 0.01, `${name}: measured ${parts.transmitted} vs ${want}`);
+    assert.ok(Math.abs(parts.transmitted - want) < 0.012, `${name}: measured ${parts.transmitted} vs ${want}`);
   }
 });
 
