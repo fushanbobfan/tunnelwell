@@ -33,7 +33,7 @@ export const PRESETS = {
     note: 'A packet released from rest swings back and forth with the classical period. With the coherent width it keeps its shape; any other width makes it breathe twice per swing.',
   },
   doublewell: {
-    label: 'Double well', scatter: false, height: 0.3, width: 1, gap: 20, energy: 0, sigma: 1.6, x0: -10,
+    label: 'Double well', scatter: false, height: 0.5, width: 1, gap: 8, energy: 0, sigma: 1, x0: -4,
     note: 'A packet placed in one well tunnels slowly through the hump into the other and back again.',
   },
   free: {
