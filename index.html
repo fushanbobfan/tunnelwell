@@ -40,6 +40,16 @@
         </tbody>
       </table>
       <p id="clock" class="note"></p>
+
+      <section id="spectrum-panel" class="spectrum" aria-labelledby="spectrum-title">
+        <h2 id="spectrum-title">Transmission spectrum</h2>
+        <div class="spectrum-wrap">
+          <canvas id="spectrum" role="img" aria-label="Exact transmission against kinetic energy"></canvas>
+        </div>
+        <p class="note">The blue curve is the exact transmission of a plane wave at each kinetic energy; the orange shading is how the packet's probability is spread over those energies, and the dashed line marks its mean. Each finished run adds a dot (measured) inside a ring (exact for that packet). Click the spectrum to fire a packet at that energy.</p>
+        <p id="peaks" class="note"></p>
+      </section>
+      <p id="spectrum-off" class="note" hidden>A confining well has no transmission spectrum: the packet can never leave.</p>
     </section>
 
     <section class="controls" aria-label="Controls">
