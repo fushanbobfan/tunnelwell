@@ -18,7 +18,7 @@ export function spectrumMax(potential, energy = 0) {
   let top = Math.abs(potential.right - potential.left);
   for (const r of potential.regions) top = Math.max(top, Math.abs(r.V - potential.left));
   const base = Math.max(2.5, 2 * top);
-  return Math.min(16, energy > 0.9 * base ? energy * 1.25 : base);
+  return Math.min(16, energy > base ? energy * 1.25 : base);
 }
 
 export function transmissionCurve(potential, eMax, samples = 801) {
@@ -67,6 +67,14 @@ export function findPeaks(potential, curve, { minHeight = 0.5, limit = 8 } = {})
     peaks.push({ energy: e, T: f(e) });
   }
   return peaks;
+}
+
+// Add the refined peak tops to a sampled curve so narrow resonances are drawn to full height.
+export function insertPeaks(curve, peaks) {
+  const points = Array.from(curve.E, (e, i) => [e, curve.T[i]]);
+  for (const p of peaks) points.push([p.energy, p.T]);
+  points.sort((a, b) => a[0] - b[0]);
+  return { E: Float64Array.from(points, (p) => p[0]), T: Float64Array.from(points, (p) => p[1]) };
 }
 
 export const SPECTRUM_MARGIN = { left: 46, right: 12, top: 10, bottom: 26 };
@@ -175,8 +183,6 @@ export function drawSpectrum(ctx, scene) {
   ctx.textAlign = 'right';
   ctx.textBaseline = 'top';
   ctx.fillText('kinetic energy', width - m.right, 0);
-  ctx.textAlign = 'left';
-  ctx.fillText('T', 4, 0);
 }
 
 function niceEnergyStep(span, target) {

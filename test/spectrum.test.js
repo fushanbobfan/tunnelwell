@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { barrierTransmission, packetTransmission } from '../src/theory.js';
 import {
-  erf, spectrumMax, transmissionCurve, energyShares, findPeaks, spectrumFrame, drawSpectrum,
+  erf, spectrumMax, transmissionCurve, energyShares, findPeaks, insertPeaks, spectrumFrame, drawSpectrum,
 } from '../src/spectrum.js';
 
 const barrier = { left: 0, right: 0, regions: [{ V: 2, width: 1 }] };
@@ -68,6 +68,15 @@ test('peaks are found and refined on the double barrier resonances', () => {
   assert.equal(over.length, 1, 'one barrier is transparent only where a half wavelength fits over it');
   assert.ok(Math.abs(over[0].energy - (2 + Math.PI ** 2 / 2)) < 1e-4);
   assert.equal(findPeaks(pair, c, { limit: 2 }).length, 2);
+});
+
+test('refined peaks are merged into the curve in energy order', () => {
+  const c = transmissionCurve(pair, 6);
+  const merged = insertPeaks(c, findPeaks(pair, c));
+  assert.equal(merged.E.length, c.E.length + findPeaks(pair, c).length);
+  for (let i = 1; i < merged.E.length; i++) assert.ok(merged.E[i] >= merged.E[i - 1]);
+  const first = Math.max(...merged.T.slice(0, 60));
+  assert.ok(first > 0.9999, 'the narrow first resonance now reaches the top');
 });
 
 test('the frame maps energy to pixels and clamps clicks', () => {
