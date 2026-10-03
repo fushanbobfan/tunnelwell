@@ -6,7 +6,8 @@ import {
   PRESETS, buildPotential, cellsFromPotential, paintCells, interactionZone, splitProbability,
 } from './potentials.js';
 import { RANGES, fromPreset, clampSettings, encodeHash, decodeHash } from './params.js';
-import { draw, energyRange, makeFrame } from './render.js';
+import { draw, energyRange, makeFrame, levelFrame, drawLevelChart } from './render.js';
+import { boundStates, overlaps, tunnellingTime } from './eigen.js';
 import {
   spectrumMax, transmissionCurve, energyShares, findPeaks, insertPeaks, spectrumFrame, drawSpectrum,
 } from './spectrum.js';
@@ -16,6 +17,8 @@ const canvas = $('plot');
 const ctx = canvas.getContext('2d');
 const specCanvas = $('spectrum');
 const specCtx = specCanvas.getContext('2d');
+const levelCanvas = $('levels');
+const levelCtx = levelCanvas.getContext('2d');
 const grid = createGrid();
 
 const LANDSCAPE = ['height', 'width', 'gap'];
@@ -47,6 +50,8 @@ const state = {
   spectrum: null,
   specSize: { width: 600, height: 190 },
   runs: [],
+  bound: null,
+  levelSize: { width: 600, height: 190 },
 };
 
 const pct = (p) => `${(100 * Math.max(0, p)).toFixed(1)} %`;
@@ -86,7 +91,7 @@ function computeSpectrum() {
   const s = state.settings;
   const on = scattering();
   $('spectrum-panel').hidden = !on;
-  $('spectrum-off').hidden = on;
+  $('levels-panel').hidden = on;
   if (!on) {
     state.spectrum = null;
     return;
@@ -108,6 +113,47 @@ function computeSpectrum() {
   spectrum.shares = energyShares(Math.sqrt(2 * s.energy), s.sigma, eMax);
   spectrum.frame = spectrumFrame(state.specSize.width, state.specSize.height, eMax);
   state.spectrum = spectrum;
+}
+
+// Stationary states of a confining well and the packet's share in each.
+// The states depend on the landscape; the shares are fixed once the packet is placed.
+function computeBound() {
+  if (scattering()) {
+    state.bound = null;
+    return;
+  }
+  const s = state.settings;
+  const key = `${state.landscapeVersion}:${state.range.max}`;
+  if (!state.bound || state.bound.key !== key) {
+    state.bound = { key, states: boundStates(grid, state.V, { maxEnergy: state.range.max, limit: 150 }) };
+  }
+  const { states } = state.bound;
+  const weights = overlaps(grid, state.psi, states);
+  state.bound.weights = weights;
+  const eMin = Math.min(0, state.range.min);
+  const eMax = state.range.max;
+  state.bound.frame = levelFrame(state.levelSize.width, state.levelSize.height, eMin, eMax);
+  const captured = weights.reduce((a, b) => a + b, 0);
+  const best = weights.indexOf(Math.max(...weights));
+  const parts = [];
+  if (states.length > 0) {
+    parts.push(`${states.length} states below energy ${eMax.toFixed(1)} hold ${pct(captured)} of the packet; the largest share, ${pct(weights[best])}, is in state ${best} at energy ${states[best].energy.toFixed(3)}.`);
+  }
+  if (s.preset === 'doublewell' && states.length >= 2) {
+    const split = states[1].energy - states[0].energy;
+    parts.push(`The two lowest states are split by ${split.toPrecision(3)}, so a packet in one well crosses to the other in about π/ΔE = ${tunnellingTime(states).toFixed(0)} time units.`);
+  } else if (states.length >= 2) {
+    const spacing = states[1].energy - states[0].energy;
+    parts.push(`The lowest levels are spaced by ${spacing.toFixed(4)}, a classical period of 2π/ΔE = ${((2 * Math.PI) / spacing).toFixed(1)}.`);
+  }
+  const text = parts.join(' ');
+  $('levels-text').textContent = text;
+  levelCanvas.setAttribute('aria-label', `Share of the packet in each bound state. ${text}`);
+}
+
+function renderLevels() {
+  if (!state.bound) return;
+  drawLevelChart(levelCtx, { frame: state.bound.frame, states: state.bound.states, weights: state.bound.weights });
 }
 
 function renderSpectrum() {
@@ -140,6 +186,7 @@ function resetPacket() {
   fitAxes();
   computeTheory();
   computeSpectrum();
+  computeBound();
   describe();
   state.dirty = true;
 }
@@ -174,6 +221,7 @@ function updateReadout() {
 
 function render() {
   renderSpectrum();
+  renderLevels();
   draw(ctx, {
     grid,
     V: state.V,
@@ -183,6 +231,7 @@ function render() {
     densityScale: state.densityScale,
     peakDensity: state.peakDensity,
     showReal: state.showReal,
+    levels: state.bound?.states.map((st) => st.energy),
   });
   updateReadout();
 }
@@ -406,6 +455,12 @@ function resize() {
   specCanvas.width = Math.round(state.specSize.width * dpr);
   specCanvas.height = Math.round(state.specSize.height * dpr);
   specCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const lrect = levelCanvas.getBoundingClientRect();
+  state.levelSize = { width: Math.max(200, lrect.width), height: Math.max(120, lrect.height) };
+  levelCanvas.width = Math.round(state.levelSize.width * dpr);
+  levelCanvas.height = Math.round(state.levelSize.height * dpr);
+  levelCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (state.bound) state.bound.frame = levelFrame(state.levelSize.width, state.levelSize.height, Math.min(0, state.range.min), state.range.max);
   if (state.spectrum) state.spectrum.frame = spectrumFrame(state.specSize.width, state.specSize.height, state.spectrum.eMax);
   state.dirty = true;
 }
@@ -428,6 +483,7 @@ syncControls();
 const observer = new ResizeObserver(resize);
 observer.observe(canvas);
 observer.observe(specCanvas);
+observer.observe(levelCanvas);
 resize();
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (reduced) setStatus('Ready: press Play');
