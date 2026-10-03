@@ -117,7 +117,7 @@ export function draw(ctx, scene) {
   ctx.fillStyle = COLORS.axis;
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
-  for (const e of ticks(frame.range.min, frame.range.max, 5)) {
+  for (const e of ticks(frame.range.min, frame.range.max, Math.max(3, Math.floor(plotH / 60)))) {
     const y = Math.round(py(e)) + 0.5;
     ctx.beginPath();
     ctx.moveTo(MARGIN.left, y);
@@ -127,7 +127,7 @@ export function draw(ctx, scene) {
   }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  for (const x of ticks(frame.view.min, frame.view.max, 8)) {
+  for (const x of ticks(frame.view.min, frame.view.max, Math.max(3, Math.min(8, Math.floor(plotW / 80))))) {
     const X = Math.round(px(x)) + 0.5;
     ctx.beginPath();
     ctx.moveTo(X, MARGIN.top);
@@ -220,6 +220,5 @@ export function draw(ctx, scene) {
   ctx.textBaseline = 'top';
   ctx.fillText('energy', 4, 0);
   ctx.textAlign = 'right';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText('position x', width - MARGIN.right, height - 1);
+  ctx.fillText('position x', width - MARGIN.right, 0);
 }
