@@ -49,7 +49,14 @@
         <p class="note">The blue curve is the exact transmission of a plane wave at each kinetic energy; the orange shading is how the packet's probability is spread over those energies, and the dashed line marks its mean. Each finished run adds a dot (measured) inside a ring (exact for that packet). Click the spectrum to fire a packet at that energy.</p>
         <p id="peaks" class="note"></p>
       </section>
-      <p id="spectrum-off" class="note" hidden>A confining well has no transmission spectrum: the packet can never leave.</p>
+      <section id="levels-panel" class="spectrum" aria-labelledby="levels-title" hidden>
+        <h2 id="levels-title">Bound states</h2>
+        <div class="spectrum-wrap">
+          <canvas id="levels" role="img" aria-label="Share of the packet in each bound state"></canvas>
+        </div>
+        <p class="note">A confining well has no transmission spectrum: the packet can never leave. Instead it is a fixed mix of the well's stationary states, drawn as thin lines on the plot above. Each bar is the share of the packet in one state, at that state's energy; the shares do not change as the packet moves.</p>
+        <p id="levels-text" class="note"></p>
+      </section>
     </section>
 
     <section class="controls" aria-label="Controls">

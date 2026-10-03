@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createGrid, gaussianPacket } from '../src/wave.js';
 import { buildPotential, PRESETS } from '../src/potentials.js';
 import {
-  phaseColor, hslToRgb, sampleColumns, energyRange, niceStep, ticks, makeFrame, draw,
+  phaseColor, hslToRgb, sampleColumns, energyRange, niceStep, ticks, makeFrame, draw, levelFrame, drawLevelChart,
 } from '../src/render.js';
 
 const grid = createGrid();
@@ -73,4 +73,28 @@ test('drawing runs end to end against a recording context', () => {
   draw(ctx, { grid, V, psi, frame, baseline: 1.5, densityScale: 10, peakDensity: 0.1, showReal: true });
   assert.ok(calls.fillRect > 20, 'the packet is drawn as columns');
   assert.ok(calls.stroke > 5);
+});
+
+test('level lines and the stick chart draw against a recording context', () => {
+  const calls = { fillRect: 0, stroke: 0 };
+  const ctx = new Proxy({}, {
+    get(target, key) {
+      if (key in target) return target[key];
+      return () => { if (key in calls) calls[key]++; };
+    },
+    set(target, key, value) { target[key] = value; return true; },
+  });
+  const V = buildPotential(grid, { preset: 'harmonic', ...PRESETS.harmonic });
+  const psi = gaussianPacket(grid, { x0: -30, sigma: 2.74, k0: 0 });
+  const frame = makeFrame(600, 300, grid.view, energyRange(grid, V, 2, { confining: true, height: 2 }));
+  draw(ctx, { grid, V, psi, frame, baseline: 2, densityScale: 10, peakDensity: 0.1, levels: [0.5, 1, 1.5, 99] });
+  const strokes = calls.stroke;
+  draw(ctx, { grid, V, psi, frame, baseline: 2, densityScale: 10, peakDensity: 0.1 });
+  assert.equal(strokes - (calls.stroke - strokes), 3, 'one stroke per level inside the window');
+  const lf = levelFrame(600, 190, 0, 4);
+  assert.equal(lf.px(0), 46);
+  assert.equal(lf.px(4), 588);
+  const before = calls.fillRect;
+  drawLevelChart(ctx, { frame: lf, states: [{ energy: 1 }, { energy: 2 }], weights: [0.7, 0.3] });
+  assert.equal(calls.fillRect - before, 5, 'background, then a line and a bar per state');
 });

@@ -48,7 +48,13 @@ and is turned back.
 **Watch it swing.** *Harmonic well* releases a packet from rest. With the
 default width (the coherent-state width) it swings without changing shape;
 any other width makes it breathe. *Double well* shows a packet tunnelling
-from one well to the other through a hump it cannot climb.
+from one well to the other through a hump it cannot climb. For both, a
+*Bound states* panel replaces the spectrum: the well's stationary states
+are drawn as thin lines on the plot, and bars show how much of the packet
+sits in each. The harmonic packet is a Poisson mix centred near state 30;
+the double-well packet is almost entirely the lowest pair, whose small
+energy splitting ΔE sets the crossing time π/ΔE (about 263 time units),
+which you can watch the simulation reproduce.
 
 **Read the spectrum.** Under the table, the transmission spectrum plots
 the exact plane-wave T against kinetic energy, shades how the packet's
@@ -102,6 +108,10 @@ speed k.
   refines each peak by ternary search so narrow resonances are drawn to
   full height, and bins the packet's energy distribution from the normal
   CDF of its momentum.
+- **Bound states.** `src/eigen.js` builds the finite-difference
+  Hamiltonian on the visible window, finds its lowest eigenvalues by
+  Sturm-sequence bisection and the eigenvectors by inverse iteration, and
+  projects the packet onto them.
 - **Measurement.** The landscape's interaction zone is where V differs
   from its two flat ends. Probability left of it plus the left absorber is
   reflected, right of it plus the right absorber is transmitted, and the
@@ -110,7 +120,9 @@ speed k.
 
 The test suite checks the FFT against a direct DFT, free spreading and
 the harmonic period against closed forms, the transfer matrices against
-the textbook barrier, step and well formulas, and the simulated split
+the textbook barrier, step and well formulas, the harmonic levels and
+coherent-state Poisson weights against theory, the double-well crossing
+time against the simulation, and the simulated split
 against the exact answer on the barrier, step, well, double barrier and
 lattice.
 
