@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tunnelwell</title>
+  <meta name="description" content="A quantum wave packet in the browser: fire it at barriers, steps, wells and lattices, watch it split, and compare the measured transmission with the exact answer." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230b0f17'/%3E%3Crect x='7' y='3' width='2' height='11' fill='%239fb2d6'/%3E%3Cpath d='M1 12c1.5 0 2-6 3.5-6S6 12 7 12M9 12c1 0 1.2-3 2.2-3s1.3 3 2.3 3' stroke='%23f2a65a' stroke-width='1.3' fill='none'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Tunnelwell</h1>
+    <p class="subtitle">A quantum particle is a wave. Fire one at a wall it cannot climb and part of it gets through anyway. Pick a landscape, set the packet's energy, and compare what the simulation measures with the exact answer.</p>
+  </header>
+
+  <main>
+    <section class="stage" aria-label="Simulation">
+      <div class="canvas-wrap">
+        <canvas id="plot" role="img" tabindex="0" aria-label="Wave packet and potential landscape"></canvas>
+      </div>
+      <div class="stage-bar">
+        <p id="status" class="status" aria-live="polite"></p>
+        <div class="buttons">
+          <button id="play" type="button">Play</button>
+          <button id="reset" type="button">Reset</button>
+          <button id="paint" type="button" aria-pressed="false">Paint landscape</button>
+        </div>
+      </div>
+      <p class="hint">Keys: <kbd>Space</kbd> plays and pauses, <kbd>R</kbd> resets, <kbd>[</kbd> and <kbd>]</kbd> lower and raise the energy, <kbd>P</kbd> toggles painting. With painting on, drag across the plot to draw a landscape. Height shows |ψ|², colour shows the phase of ψ.</p>
+
+      <table class="readout" aria-label="Measurements">
+        <thead>
+          <tr><th scope="col"></th><th scope="col">Reflected</th><th scope="col">Inside</th><th scope="col">Transmitted</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Simulation</th><td id="m-r">–</td><td id="m-i">–</td><td id="m-t">–</td></tr>
+          <tr><th scope="row">Exact, this packet</th><td id="x-r">–</td><td>0</td><td id="x-t">–</td></tr>
+          <tr><th scope="row">Exact, plane wave at ⟨E⟩</th><td id="p-r">–</td><td>0</td><td id="p-t">–</td></tr>
+        </tbody>
+      </table>
+      <p id="clock" class="note"></p>
+    </section>
+
+    <section class="controls" aria-label="Controls">
+      <fieldset>
+        <legend>Landscape</legend>
+        <label class="row" for="preset">Scene
+          <select id="preset"></select>
+        </label>
+        <p id="note" class="note"></p>
+        <div class="slider" data-key="height">
+          <label for="height" id="height-label">Height</label>
+          <input id="height" type="range" />
+          <output for="height" id="height-out"></output>
+        </div>
+        <div class="slider" data-key="width">
+          <label for="width">Width</label>
+          <input id="width" type="range" />
+          <output for="width" id="width-out"></output>
+        </div>
+        <div class="slider" data-key="gap">
+          <label for="gap" id="gap-label">Gap</label>
+          <input id="gap" type="range" />
+          <output for="gap" id="gap-out"></output>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Packet</legend>
+        <div class="slider" data-key="energy">
+          <label for="energy">Kinetic energy</label>
+          <input id="energy" type="range" />
+          <output for="energy" id="energy-out"></output>
+        </div>
+        <div class="slider" data-key="sigma">
+          <label for="sigma">Width σ</label>
+          <input id="sigma" type="range" />
+          <output for="sigma" id="sigma-out"></output>
+        </div>
+        <div class="slider" data-key="x0">
+          <label for="x0">Start at</label>
+          <input id="x0" type="range" />
+          <output for="x0" id="x0-out"></output>
+        </div>
+        <p class="note">A narrow packet holds a wide spread of energies, so its transmission is an average over them. Widen it to approach the plane-wave answer.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>View</legend>
+        <div class="slider" data-key="speed">
+          <label for="speed">Steps per frame</label>
+          <input id="speed" type="range" />
+          <output for="speed" id="speed-out"></output>
+        </div>
+        <label class="check"><input id="real" type="checkbox" /> Show the real part of ψ</label>
+        <div class="buttons">
+          <button id="share" type="button">Copy link</button>
+          <button id="png" type="button">Save PNG</button>
+        </div>
+      </fieldset>
+    </section>
+  </main>
+
+  <footer>
+    <p>Units with ħ = m = 1, so a packet with wavenumber k has energy k²/2 and moves at speed k. The wave is advanced with the split-step Fourier method on 2048 points; absorbing layers beyond the visible window soak up what leaves, and their intake is counted as reflected or transmitted. The exact columns come from transfer matrices across the same grid cells. Source on <a href="https://github.com/fushanbobfan/tunnelwell">GitHub</a>.</p>
+  </footer>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
